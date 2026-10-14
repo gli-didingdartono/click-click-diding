@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Management</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1f2937;
+      min-height: 100vh;
+    }
+
+    /* Hanya halaman yang aktif yang ditampilkan */
+    .page { display: none; min-height: 100vh; }
+    .page.active { display: flex; }
+
+    /* Halaman login */
+    #login-page {
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 380px;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .card h1 {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .card p.subtitle {
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .form-group input.invalid { border-color: #dc2626; }
+
+    .error {
+      color: #dc2626;
+      font-size: 0.8rem;
+      margin-top: 4px;
+      min-height: 1em;
+    }
+
+    .alert {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: #1d4ed8; }
+
+    /* Halaman homepage */
+    #home-page {
+      flex-direction: column;
+    }
+
+    header {
+      background: #1e3a8a;
+      color: #ffffff;
+      padding: 16px 24px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .greeting {
+      background: #ffffff;
+      padding: 48px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .greeting h2 {
+      font-size: 2rem;
+      color: #1e3a8a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Halaman Login -->
+  <section id="login-page" class="page active">
+    <div class="card">
+      <h1>Selamat Datang</h1>
+      <p class="subtitle">Silakan masuk untuk melanjutkan</p>
+
+      <div id="login-alert" class="alert"></div>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="Masukkan username" autocomplete="username" />
+          <div class="error" id="username-error"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Masukkan password" autocomplete="current-password" />
+          <div class="error" id="password-error"></div>
+        </div>
+
+        <button type="submit" class="btn">Masuk</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Halaman Homepage -->
+  <section id="home-page" class="page">
+    <header>Project Management</header>
+    <main>
+      <div class="greeting">
+        <h2 id="greeting-text"></h2>
+      </div>
+    </main>
+  </section>
+
+  <script>
+    // Kredensial hardcode untuk fase 1
+    const USERNAME_VALID = 'admin';
+
+    // Kunci penyimpanan status login di sessionStorage
+    const SESSION_KEY = 'loggedInUser';
+
+    // Hash yang dipakai untuk halaman homepage
+    const HOME_HASH = '#home';
+
+    const loginPage = document.getElementById('login-page');
+    const homePage = document.getElementById('home-page');
+    const loginForm = document.getElementById('login-form');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const usernameError = document.getElementById('username-error');
+    const passwordError = document.getElementById('password-error');
+    const loginAlert = document.getElementById('login-alert');
+    const greetingText = document.getElementById('greeting-text');
+
+    // Ambil username yang tersimpan dari sesi login, null jika belum login
+    function getLoggedInUser() {
+      return sessionStorage.getItem(SESSION_KEY);
+    }
+
+    // Tampilkan halaman homepage, atau login jika belum login
+    function renderPage() {
+      const loggedInUser = getLoggedInUser();
+      const wantsHome = window.location.hash === HOME_HASH;
+
+      // Akses homepage tanpa login dialihkan ke login
+      if (wantsHome && !loggedInUser) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+
+      const showHome = loggedInUser !== null && window.location.hash === HOME_HASH;
+
+      if (showHome) {
+        greetingText.textContent = `Hallo ${loggedInUser}`;
+      }
+
+      loginPage.classList.toggle('active', !showHome);
+      homePage.classList.toggle('active', showHome);
+    }
+
+    // Cek input form, true jika username dan password sudah diisi
+    function validateForm(username, password) {
+      let valid = true;
+
+      usernameError.textContent = '';
+      passwordError.textContent = '';
+      usernameInput.classList.remove('invalid');
+      passwordInput.classList.remove('invalid');
+
+      if (username === '') {
+        usernameError.textContent = 'Username wajib diisi';
+        usernameInput.classList.add('invalid');
+        valid = false;
+      }
+
+      // Password yang hanya berisi spasi dianggap kosong
+      if (password.trim() === '') {
+        passwordError.textContent = 'Password wajib diisi';
+        passwordInput.classList.add('invalid');
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    loginForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+
+      loginAlert.style.display = 'none';
+
+      if (!validateForm(username, password)) return;
+
+      // Username harus 'admin', password bebas selama tidak kosong
+      if (username !== USERNAME_VALID) {
+        loginAlert.textContent = 'Login gagal: username tidak terdaftar';
+        loginAlert.style.display = 'block';
+        return;
+      }
+
+      // Simpan sesi lalu pindah ke homepage
+      sessionStorage.setItem(SESSION_KEY, username);
+      loginForm.reset();
+      window.location.hash = HOME_HASH;
+      renderPage();
+    });
+
+    window.addEventListener('hashchange', renderPage);
+    renderPage();
+  </script>
+</body>
+</html>
